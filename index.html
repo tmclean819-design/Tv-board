@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Living Room Board</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap">
+<style>
+html{color-scheme:dark}body{margin:0}
+/* Layout: one TV-safe stage. Left, a very large clock and date over drifting light. Right, a glass column with the task list and month. */
+:root {
+  --ink: #0a1d22;
+  --ink-2: #1a1633;
+  --glow-teal: 47, 181, 168;
+  --glow-rose: 196, 71, 125;
+  --glow-amber: 232, 164, 74;
+  --glow-blue: 82, 98, 214;
+  --text: #f6ecdc;
+  --muted: #c8bba3;
+  --faint: rgba(246, 236, 220, 0.14);
+  --panel: rgba(8, 26, 31, 0.55);
+  --accent: #d9a441;
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-body: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: clamp(16px, 1.35vw, 28px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: clamp(16px, 3vw, 56px);
+  overflow-x: hidden;
+}
+#ambient { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
+#dim { position: fixed; inset: 0; z-index: 2; background: #05040c; opacity: 0; pointer-events: none; transition: opacity 6s ease; }
+body.night #dim { opacity: 0.55; }
+
+.stage {
+  position: relative; z-index: 1;
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: clamp(20px, 3.5vw, 72px);
+  align-items: stretch;
+  transition: transform 4s ease-in-out;
+}
+.left { display: flex; flex-direction: column; justify-content: center; min-width: 0; gap: clamp(8px, 1vw, 20px); }
+.plaque { align-self: flex-start; margin: 0 0 clamp(6px, 1vw, 16px); padding: 0.45em 1.1em; font-family: var(--font-display); font-size: 0.95em; letter-spacing: 0.28em; text-transform: uppercase; color: #2a1a05; background: linear-gradient(135deg, #f0d58a, #c8922f 55%, #a8761f); border-radius: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.35); }
+.right .panel { border-color: rgba(217, 164, 65, 0.3); }
+.greeting { color: var(--muted); font-size: 1.35em; letter-spacing: 0.01em; margin: 0; }
+.clock {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(5.5rem, 17vw, 22rem);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  display: flex; align-items: baseline; gap: 0.12em; flex-wrap: wrap;
+}
+.clock .ampm { font-size: 0.2em; font-weight: 500; letter-spacing: 0.08em; color: var(--accent); text-transform: uppercase; }
+.date { font-family: var(--font-display); font-weight: 500; font-size: clamp(1.6rem, 3.4vw, 4.6rem); letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; font-size: 1.15em; font-variant-numeric: tabular-nums; }
+
+.right { display: flex; flex-direction: column; gap: clamp(14px, 1.8vw, 36px); min-width: 0; justify-content: center; }
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--faint);
+  border-radius: 22px;
+  padding: clamp(16px, 1.8vw, 36px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  min-width: 0;
+}
+.panel h2 {
+  margin: 0 0 0.7em; font-size: 0.8em; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
+  display: flex; justify-content: space-between; gap: 1em;
+}
+.panel h2 span { font-variant-numeric: tabular-nums; letter-spacing: 0.06em; }
+
+.tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35em; }
+.task { display: flex; align-items: center; gap: 0.8em; width: 100%; padding: 0.55em 0.4em; border: 0; background: none; color: var(--text); font: inherit; font-size: 1.2em; text-align: left; border-radius: 12px; cursor: pointer; }
+.task:hover, .task:focus-visible { background: rgba(255,255,255,0.07); outline: 2px solid var(--accent); outline-offset: 0; }
+.task:not(:focus-visible) { outline: none; }
+.box { flex: none; width: 1.15em; height: 1.15em; border-radius: 50%; border: 2px solid var(--muted); display: grid; place-items: center; }
+.task.done { color: var(--muted); }
+.task.done .label { text-decoration: line-through; text-decoration-color: rgba(180,172,201,0.6); }
+.task.done .box { background: var(--accent); border-color: var(--accent); }
+.task.done .box::after { content: ""; width: 0.3em; height: 0.55em; border: solid var(--ink); border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-1px, -1px); }
+.empty { color: var(--muted); margin: 0; font-size: 1.1em; line-height: 1.5; max-width: 30ch; }
+.status { color: var(--muted); font-size: 0.85em; margin: 0.8em 0 0; min-height: 1.2em; }
+
+.add { display: flex; gap: 0.6em; margin-top: 0.9em; flex-wrap: wrap; }
+.add input { flex: 1 1 10em; min-width: 0; font: inherit; color: var(--text); background: rgba(255,255,255,0.06); border: 1px solid var(--faint); border-radius: 12px; padding: 0.6em 0.8em; }
+.add input::placeholder { color: var(--muted); }
+.add input:focus-visible, .add button:focus-visible, .clear:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.add button { font: inherit; font-weight: 600; color: var(--ink); background: var(--accent); border: 0; border-radius: 12px; padding: 0.6em 1.1em; cursor: pointer; }
+.clear { font: inherit; font-size: 0.85em; color: var(--muted); background: none; border: 0; padding: 0.3em 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.25em; text-align: center; font-variant-numeric: tabular-nums; }
+.cal .dow { font-size: 0.75em; color: var(--muted); letter-spacing: 0.1em; padding-bottom: 0.4em; }
+.cal .d { padding: 0.32em 0; border-radius: 10px; font-size: 1em; }
+.cal .d.out { visibility: hidden; }
+.cal .d.today { background: var(--accent); color: var(--ink); font-weight: 600; }
+
+.apps { margin-top: clamp(10px, 1.6vw, 36px); min-width: 0; }
+.apps-head { display: flex; justify-content: space-between; align-items: center; margin: 0 0 0.7em; color: var(--muted); font-size: 0.8em; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; }
+.apps-head button { font: inherit; font-size: 1em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); background: none; border: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5em, 1fr)); gap: 0.8em; }
+.app { position: relative; display: block; height: 8.6em; padding: 0; text-align: left; border-radius: 12px 12px 24px 24px; border: 1px solid rgba(246,236,220,0.26); background: linear-gradient(160deg, rgba(246,236,220,0.07), rgba(8,26,31,0.4)); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: var(--text); font: inherit; text-decoration: none; cursor: pointer; min-width: 0; overflow: hidden; isolation: isolate; box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 12px 26px rgba(0,0,0,0.35); transition: transform 0.6s ease, box-shadow 0.6s ease; }
+.app::before { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(180deg, rgba(240,213,138,0.55) 0, transparent 5px), linear-gradient(90deg, rgba(66,130,235,0.2), transparent 28%); }
+.app .liq { position: absolute; left: 0; right: 0; bottom: 0; height: 26%; z-index: 1; background: linear-gradient(180deg, rgba(217,139,43,0.92), rgba(122,61,14,0.95)); transition: height 1.8s cubic-bezier(.3,.7,.2,1); }
+.app .liq::before { content: ""; position: absolute; left: 0; right: 0; top: -11px; height: 12px; background: var(--wave) repeat-x 0 0 / 80px 12px; animation: slosh 5s linear infinite; }
+.app .ice { position: absolute; left: 62%; bottom: 12%; z-index: 2; width: 2.3em; height: 2.3em; border-radius: 9px; border: 1px solid rgba(255,255,255,0.4); background: linear-gradient(135deg, rgba(255,255,255,0.5), rgba(255,255,255,0.06)); transform: rotate(12deg); transition: bottom 1.8s cubic-bezier(.3,.7,.2,1); }
+.app .liq::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(105deg, transparent 0 22px, rgba(255,214,150,0.22) 22px 38px, transparent 38px 66px); background-size: 132px 100%; animation: caustic 28s linear infinite; }
+.app .base { position: absolute; left: 0; right: 0; bottom: 0; height: 14px; z-index: 2; background: linear-gradient(180deg, #f0d58a, #c8922f 45%, #8f6418); box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 -2px 6px rgba(0,0,0,0.3); }
+.app .txt { position: absolute; left: 0.9em; right: 0.9em; top: 0.8em; z-index: 3; display: flex; flex-direction: column; gap: 0.2em; }
+.app .nm { font-family: var(--font-display); font-size: 1.15em; font-weight: 500; text-shadow: 0 1px 8px rgba(0,0,0,0.55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app .hint { font-size: 0.7em; font-weight: 400; color: var(--muted); line-height: 1.3; text-shadow: 0 1px 6px rgba(0,0,0,0.6); }
+.app:hover, .app:focus-visible { transform: translateY(-5px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 20px 38px rgba(0,0,0,0.45), 0 0 30px rgba(246,236,220,0.08); }
+.app:not(:focus-visible) { outline: none; }
+.app:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.app:hover .liq, .app:focus-visible .liq { height: 66%; }
+.app:hover .ice, .app:focus-visible .ice { bottom: 40%; }
+.app:hover .liq::after, .app:focus-visible .liq::after { animation-duration: 12s; }
+.app.removable { border-style: dashed; }
+.app.removable .nm::after { content: " \u00d7"; color: var(--accent); }
+@keyframes slosh { to { background-position-x: 80px; } }
+@keyframes caustic { to { background-position-x: 132px; } }
+@media (prefers-reduced-motion: reduce) { .app, .app .liq::after, .app .liq, .app .liq::before, .app .ice { animation: none !important; transition: none !important; } }
+.app-form { display: flex; gap: 0.6em; margin-top: 0.8em; flex-wrap: wrap; }
+.app-form input { flex: 1 1 9em; min-width: 0; font: inherit; color: var(--text); background: rgba(255,255,255,0.06); border: 1px solid var(--faint); border-radius: 12px; padding: 0.55em 0.8em; }
+.app-form input::placeholder { color: var(--muted); }
+.app-form button { font: inherit; font-weight: 600; color: var(--ink); background: var(--accent); border: 0; border-radius: 12px; padding: 0.55em 1.1em; cursor: pointer; }
+.app-form input:focus-visible, .app-form button:focus-visible, .apps-head button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (max-width: 860px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .clock { font-size: clamp(4.5rem, 24vw, 9rem); }
+}
+@media (prefers-reduced-motion: reduce) { .stage, #dim { transition: none; } }
+</style>
+
+</head>
+<body>
+<canvas id="ambient" aria-hidden="true"></canvas>
+<div id="dim" aria-hidden="true"></div>
+
+<main class="stage" id="stage">
+  <section class="left" aria-label="Time and date">
+    <p class="plaque">The T Room</p>
+    <p class="greeting" id="greeting">Hello, Tiffany</p>
+    <h1 class="clock" id="clock" aria-live="off"><span id="time">0:00</span><span class="ampm" id="ampm">pm</span></h1>
+    <p class="date" id="date">Monday, November 2</p>
+    <p class="sub" id="sub">Week 45 · Day 306</p>
+
+    <div class="apps" aria-labelledby="apps-h">
+      <div class="apps-head"><span id="apps-h">Apps</span><button id="editApps" type="button">Edit</button></div>
+      <div class="app-grid" id="appGrid"></div>
+      <form class="app-form" id="appForm" autocomplete="off" hidden>
+        <input id="appName" type="text" maxlength="24" placeholder="Name" aria-label="App name">
+        <input id="appUrl" type="text" maxlength="300" placeholder="Address, like linkedin.com" aria-label="App address">
+        <button type="submit">Add app</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="right">
+    <div class="panel" aria-labelledby="tasks-h">
+      <h2 id="tasks-h">Today <span id="count"></span></h2>
+      <ul class="tasks" id="tasks"></ul>
+      <p class="empty" id="empty" hidden>Nothing on the list. Add a task below, or from your phone.</p>
+      <form class="add" id="addForm" autocomplete="off">
+        <input id="newTask" type="text" maxlength="90" placeholder="Add a task" aria-label="New task">
+        <button type="submit">Add</button>
+      </form>
+      <p class="status" id="status"></p>
+      <button class="clear" id="clearDone" type="button" hidden>Clear finished</button>
+    </div>
+
+    <div class="panel" aria-labelledby="cal-h">
+      <h2 id="cal-h"><span id="monthName" style="letter-spacing:0.16em"></span><span id="yearNum"></span></h2>
+      <div class="cal" id="cal"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var lastTime = "", lastDay = "", lastMonthKey = "";
+
+  /* Clock, date, greeting, month grid */
+  function tick() {
+    var now = new Date();
+    var h = now.getHours(), m = now.getMinutes();
+    var t = ((h % 12) || 12) + ":" + (m < 10 ? "0" : "") + m;
+    if (t !== lastTime) {
+      lastTime = t;
+      $("time").textContent = t;
+      $("ampm").textContent = h < 12 ? "am" : "pm";
+      var g = h < 5 ? "Still up" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : h < 21 ? "Good evening" : "Good night";
+      $("greeting").textContent = g + ", Tiffany";
+      document.body.classList.toggle("night", h >= 23 || h < 6);
+    }
+    var dayKey = now.getFullYear() + "-" + now.getMonth() + "-" + now.getDate();
+    if (dayKey !== lastDay) {
+      lastDay = dayKey;
+      $("date").textContent = DAYS[now.getDay()] + ", " + MONTHS[now.getMonth()] + " " + now.getDate();
+      var start = new Date(now.getFullYear(), 0, 1);
+      var doy = Math.floor((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - start) / 86400000) + 1;
+      var jan1 = start.getDay();
+      var week = Math.ceil((doy + jan1) / 7);
+      $("sub").textContent = "Week " + week + " · Day " + doy;
+      buildMonth(now);
+    }
+  }
+  function buildMonth(now) {
+    var y = now.getFullYear(), mo = now.getMonth();
+    $("monthName").textContent = MONTHS[mo].toUpperCase();
+    $("yearNum").textContent = y;
+    var first = new Date(y, mo, 1).getDay();
+    var len = new Date(y, mo + 1, 0).getDate();
+    var html = "";
+    ["S","M","T","W","T","F","S"].forEach(function (d) { html += '<div class="dow">' + d + "</div>"; });
+    for (var i = 0; i < first; i++) html += '<div class="d out">0</div>';
+    for (var d = 1; d <= len; d++) html += '<div class="d' + (d === now.getDate() ? " today" : "") + '">' + d + "</div>";
+    $("cal").innerHTML = html;
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  /* Task list: shared through db when available, local otherwise */
+  var items = [];
+  var store = null;      // db document ref
+  var localOnly = true;
+  var pending = Promise.resolve();
+  function lsGet() { try { return JSON.parse(localStorage.getItem("lrb-tasks") || "[]"); } catch (e) { return []; } }
+  function lsSet(v) { try { localStorage.setItem("lrb-tasks", JSON.stringify(v)); } catch (e) {} }
+
+  function render() {
+    var list = $("tasks");
+    list.innerHTML = "";
+    var sorted = items.slice().sort(function (a, b) { return (a.done ? 1 : 0) - (b.done ? 1 : 0); });
+    sorted.forEach(function (it) {
+      var li = document.createElement("li");
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "task" + (it.done ? " done" : "");
+      b.setAttribute("role", "checkbox");
+      b.setAttribute("aria-checked", it.done ? "true" : "false");
+      var box = document.createElement("span"); box.className = "box";
+      var lab = document.createElement("span"); lab.className = "label"; lab.textContent = it.text;
+      b.appendChild(box); b.appendChild(lab);
+      b.addEventListener("click", function () { it.done = !it.done; commit(); });
+      li.appendChild(b);
+      list.appendChild(li);
+    });
+    var open = items.filter(function (i) { return !i.done; }).length;
+    $("count").textContent = items.length ? open + " open" : "";
+    $("empty").hidden = items.length > 0;
+    $("clearDone").hidden = !items.some(function (i) { return i.done; });
+  }
+  function commit() {
+    render();
+    var snapshot = items.map(function (i) { return { id: i.id, text: i.text, done: !!i.done }; });
+    lsSet(snapshot);
+    if (store) {
+      pending = pending.then(function () { return store.set({ items: snapshot }); })
+        .catch(function () { $("status").textContent = "Could not sync. Changes are saved on this screen only."; });
+    }
+  }
+  $("addForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var v = $("newTask").value.trim();
+    if (!v) return;
+    items.push({ id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), text: v, done: false });
+    $("newTask").value = "";
+    commit();
+  });
+  $("clearDone").addEventListener("click", function () {
+    items = items.filter(function (i) { return !i.done; });
+    commit();
+  });
+
+  items = lsGet();
+  render();
+
+  try {
+    if (window.claude && window.claude.use) {
+      window.claude.use("db").then(function (db) {
+        if (!db) { $("status").textContent = "Tasks are saved on this screen only."; return; }
+        store = db.doc("tv/todos");
+        localOnly = false;
+        var timer = setTimeout(function () { $("status").textContent = "Syncing is slow. Showing the last saved list."; }, 10000);
+        store.onSnapshot(function (snap) {
+          if (!snap.metadata.fromCache) { clearTimeout(timer); $("status").textContent = ""; }
+          if (snap.metadata.hasPendingWrites) return;
+          var d = snap.exists ? snap.data() : null;
+          if (d && Array.isArray(d.items)) { items = d.items; lsSet(items); render(); }
+        }, function () {
+          clearTimeout(timer);
+          store = null;
+          $("status").textContent = "Tasks are saved on this screen only.";
+        });
+      }).catch(function () {});
+    }
+  } catch (e) {}
+
+  /* Key apps: tiles that open in a new tab. Shared through db, local otherwise */
+  var DEFAULT_APPS = [
+    { id: "a-netflix", name: "Netflix", url: "https://www.netflix.com", alexa: true },
+    { id: "a-ytv", name: "YouTube TV", url: "https://tv.youtube.com", alexa: true },
+    { id: "a-hulu", name: "Hulu", url: "https://www.hulu.com", alexa: true },
+    { id: "a-tubi", name: "Tubi", url: "https://tubitv.com", alexa: true },
+    { id: "a-prime", name: "Prime Video", url: "https://www.primevideo.com", alexa: true },
+    { id: "a-max", name: "HBO Max", url: "https://www.hbomax.com", alexa: true }
+  ];
+  var apps = null, appStore = null, editingApps = false, appPending = Promise.resolve();
+  try { var savedApps = JSON.parse(localStorage.getItem("lrb-apps") || "null"); if (Array.isArray(savedApps)) apps = savedApps; } catch (e) {}
+  /* Etched fern and liquid ripple, drawn as inline images for the glass tiles */
+  (function () {
+    var f = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="160" viewBox="0 0 120 160" fill="none" stroke="rgba(246,236,220,0.4)" stroke-width="1" stroke-linecap="round"><path d="M60 156C60 112 66 64 60 14"/>';
+    for (var i = 0; i < 8; i++) {
+      var y = 140 - i * 15, l = 26 - i * 2.2, x = 60 + i * 0.3;
+      f += '<path d="M' + x + ' ' + y + 'q-' + (l / 2) + ' -' + (l * 0.2) + ' -' + l + ' -' + (l * 0.9) + '"/>';
+      f += '<path d="M' + x + ' ' + y + 'q' + (l / 2) + ' -' + (l * 0.2) + ' ' + l + ' -' + (l * 0.9) + '"/>';
+    }
+    f += '</svg>';
+    var w = '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="12" viewBox="0 0 80 12"><path d="M0 6Q20 0 40 6T80 6V12H0Z" fill="#d98b2b"/></svg>';
+    var root = document.documentElement.style;
+    root.setProperty("--fern", 'url("data:image/svg+xml,' + encodeURIComponent(f) + '")');
+    root.setProperty("--wave", 'url("data:image/svg+xml,' + encodeURIComponent(w) + '")');
+  })();
+  function hue(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h; }
+  function safeUrl(u) {
+    u = (u || "").trim();
+    if (!u) return "";
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(u)) u = "https://" + u;
+    return /^https?:\/\//i.test(u) ? u : "";
+  }
+  function renderApps() {
+    var grid = $("appGrid");
+    grid.innerHTML = "";
+    (apps || DEFAULT_APPS).forEach(function (a) {
+      var el;
+      if (editingApps) {
+        el = document.createElement("button");
+        el.type = "button";
+        el.className = "app removable";
+        el.setAttribute("aria-label", "Remove " + a.name);
+        el.addEventListener("click", function () {
+          apps = (apps || DEFAULT_APPS).filter(function (x) { return x.id !== a.id; });
+          commitApps();
+        });
+      } else {
+        el = document.createElement("a");
+        el.className = "app";
+        el.href = safeUrl(a.url) || "#";
+        el.target = "_blank";
+        el.rel = "noopener noreferrer";
+      }
+      var base = document.createElement("span"); base.className = "base"; base.setAttribute("aria-hidden", "true");
+      var ice = document.createElement("span"); ice.className = "ice"; ice.setAttribute("aria-hidden", "true");
+      var liq = document.createElement("span"); liq.className = "liq"; liq.setAttribute("aria-hidden", "true");
+      var txt = document.createElement("span"); txt.className = "txt";
+      var nm = document.createElement("span");
+      nm.className = "nm";
+      nm.textContent = a.name;
+      txt.appendChild(nm);
+      if (a.alexa && !editingApps) {
+        var hint = document.createElement("span");
+        hint.className = "hint";
+        hint.textContent = "Alexa, open " + a.name;
+        txt.appendChild(hint);
+      }
+      el.appendChild(ice); el.appendChild(liq); el.appendChild(base); el.appendChild(txt);
+      grid.appendChild(el);
+    });
+    $("appForm").hidden = !editingApps;
+    $("editApps").textContent = editingApps ? "Done" : "Edit";
+  }
+  function commitApps() {
+    renderApps();
+    var snap = (apps || []).map(function (a) { return { id: a.id, name: a.name, url: a.url, alexa: !!a.alexa }; });
+    try { localStorage.setItem("lrb-apps", JSON.stringify(snap)); } catch (e) {}
+    if (appStore) {
+      appPending = appPending.then(function () { return appStore.set({ items: snap }); }).catch(function () {});
+    }
+  }
+  $("editApps").addEventListener("click", function () { editingApps = !editingApps; renderApps(); });
+  $("appForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var name = $("appName").value.trim(), url = safeUrl($("appUrl").value);
+    if (!name || !url) return;
+    apps = (apps || DEFAULT_APPS).concat([{ id: "a" + Date.now().toString(36), name: name, url: url }]);
+    $("appName").value = ""; $("appUrl").value = "";
+    commitApps();
+  });
+  renderApps();
+  try {
+    if (window.claude && window.claude.use) {
+      window.claude.use("db").then(function (db) {
+        if (!db) return;
+        appStore = db.doc("tv/apps");
+        appStore.onSnapshot(function (snap) {
+          if (snap.metadata.hasPendingWrites) return;
+          var d = snap.exists ? snap.data() : null;
+          if (d && Array.isArray(d.items)) {
+            apps = d.items;
+            try { localStorage.setItem("lrb-apps", JSON.stringify(apps)); } catch (e) {}
+            renderApps();
+          }
+        }, function () { appStore = null; });
+      }).catch(function () {});
+    }
+  } catch (e) {}
+
+  /* Burn-in protection: nudge the whole layout a few pixels every ninety seconds */
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduce) {
+    setInterval(function () {
+      var x = Math.round((Math.random() - 0.5) * 24), y = Math.round((Math.random() - 0.5) * 24);
+      $("stage").style.transform = "translate(" + x + "px," + y + "px)";
+    }, 90000);
+  }
+
+  /* Ambient light: a few soft colour fields drifting on a low-resolution canvas */
+  var cv = $("ambient"), ctx = cv.getContext("2d");
+  var W = 0, H = 0, SCALE = 0.25;
+  function size() {
+    W = Math.max(160, Math.round(window.innerWidth * SCALE));
+    H = Math.max(90, Math.round(window.innerHeight * SCALE));
+    cv.width = W; cv.height = H;
+  }
+  size();
+  window.addEventListener("resize", size);
+  var blobs = [
+    { rgb: [24, 132, 130], a: 0.5, r: 0.58, fx: 0.00011, fy: 0.00008, px: 0.0, py: 1.2 },
+    { rgb: [183, 86, 48], a: 0.3, r: 0.5, fx: 0.00008, fy: 0.00012, px: 2.1, py: 0.4 },
+    { rgb: [66, 130, 235], a: 0.34, r: 0.5, fx: 0.00007, fy: 0.00009, px: 4.0, py: 2.6, fl: 0.3 },
+    { rgb: [236, 160, 66], a: 0.3, r: 0.36, fx: 0.00013, fy: 0.00006, px: 5.2, py: 3.3, fl: 0.3 }
+  ];
+  function draw(t) {
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "#0a1d22";
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = "lighter";
+    var m = Math.max(W, H);
+    blobs.forEach(function (b) {
+      var x = W * (0.5 + 0.42 * Math.sin(t * b.fx * 6.283 + b.px));
+      var y = H * (0.5 + 0.42 * Math.sin(t * b.fy * 6.283 + b.py));
+      var r = m * b.r;
+      var g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, "rgba(" + b.rgb.join(",") + "," + (b.a * (b.fl ? 1 + b.fl * Math.sin(t * 0.007 + b.px * 5) * Math.sin(t * 0.0031 + b.py) : 1)).toFixed(3) + ")");
+      g.addColorStop(1, "rgba(" + b.rgb.join(",") + ",0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    });
+  }
+  var last = 0;
+  function frame(ts) {
+    if (ts - last > 66) { last = ts; draw(ts); }
+    requestAnimationFrame(frame);
+  }
+  draw(0);
+  if (!reduce) requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
